@@ -25,7 +25,7 @@ class BotBase(BaseModel):
 
 
 class BotCreate(BotBase):
-    pass
+    id: UUID = Field(default_factory=uuid4)
 
 
 class Bot(BotBase):

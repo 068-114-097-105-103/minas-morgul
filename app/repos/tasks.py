@@ -12,11 +12,10 @@ class TaskRepository:
         with self.conn:
             self.conn.execute(
                 """
-                CREATE TABLE IF NOT EXISTS bots (
+                CREATE TABLE IF NOT EXISTS tasks (
                     id TEXT PRIMARY KEY,
                     command TEXT DEFAULT 'Idle',
                     parameters TEXT DEFAULT NULL
-                    FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE CASCADE
                 )
             """
             )
