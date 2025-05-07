@@ -17,7 +17,7 @@ class TaskCreate(TaskBase):
 
 
 class BotBase(BaseModel):
-    name: str
+    name: Optional[str] = None
     task: Optional[Task] = {
         "command": "Idle",
         "parameters": None,
