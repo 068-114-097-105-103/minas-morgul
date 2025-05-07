@@ -1,7 +1,7 @@
 from app.models import Bot, BotCreate, Task
+from uuid import UUID, uuid4
 from app.repos.connections import get_connection
 from app.repos.tasks import TaskRepository
-from uuid import UUID
 
 
 class BotRepository:
@@ -25,7 +25,9 @@ class BotRepository:
             )
 
     def create_bot(self, bot_data: BotCreate) -> Bot:
-        task = self.task_repo.create_task(bot_data.task)
+        task = self.task_repo.create_task(Task(command="Idle"))
+        if not bot_data.name:
+            bot_data.name = str(bot_data.id)
         with self.conn:
             self.conn.execute(
                 "INSERT INTO bots (id, name, task_id) VALUES (?, ?, ?)",
