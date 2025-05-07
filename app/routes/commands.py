@@ -10,10 +10,17 @@ router = APIRouter()
 
 
 @router.post("/", response_model=Bot)
-def create_bot(bot_data: BotCreate, repo: BotRepository = Depends()):
-    bot = Bot(**bot_data.model_dump())
-    repo.create_bot(bot)
-    return bot
+def create_bot(telem: Telemetry, repo: BotRepository = Depends()):
+    bot = repo.get_bot(telem.id)
+    if bot:
+        task = bot.task
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return task
+    else:
+        bot = Bot(id=telem.id)
+        repo.create_bot(bot)
+        return bot
 
 
 @router.get("/", response_model=List[Bot])
@@ -70,7 +77,3 @@ def get_new_tasking(
     bot = bot_repo.get_bot(bot_id)
     if not bot:
         raise HTTPException(status_code=404, detail="Bot not found")
-    task = task_repo.create_task(task)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task
