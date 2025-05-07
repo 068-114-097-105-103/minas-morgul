@@ -49,14 +49,11 @@
 
             console.log(command, parameters);
 
-            const response = await fetch(
-              `/commands/telemetry/${botId}/tasking/`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ command, parameters }),
-              }
-            );
+            const response = await fetch(`/telemetry/${botId}/`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ command, parameters }),
+            });
 
             if (response.ok) {
               alert("Command sent!");
