@@ -33,7 +33,7 @@ class Bot(BotBase):
 
 
 class Telemetry(BaseModel):
-    id: UUID = Field()
+    uuid: UUID = Field()
     memeory: Optional[str] = None
     cpu: Optional[str] = None
     disk: Optional[str] = None

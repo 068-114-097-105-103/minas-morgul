@@ -15,7 +15,7 @@ def check_in(
     request: Request,
     repo: BotRepository = Depends(),
 ):
-    bot = repo.get_bot(telem.id)
+    bot = repo.get_bot(telem.uuid)
     if bot:
         task = bot.task
         if not task:
@@ -24,7 +24,7 @@ def check_in(
         return task
     else:
         ip = request.client.host
-        bot = Bot(id=telem.id, name=ip)
+        bot = Bot(id=telem.uuid, name=ip)
         bot = repo.create_bot(bot)
         task = bot.task
         print(f"New bot {bot.id} created with task: {task.command}")
