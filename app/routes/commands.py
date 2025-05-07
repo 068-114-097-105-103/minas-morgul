@@ -1,15 +1,15 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from app.models import Bot, BotCreate, Task, Telemetry
+from app.models import Bot, Task, Telemetry, TaskBase
 from app.repos.bots import BotRepository
 from app.repos.tasks import TaskRepository
-from typing import List, Union
+from typing import List
 from uuid import UUID
 
 
 router = APIRouter()
 
 
-@router.post("/", response_model=Union[Bot, Task])
+@router.post("/", response_model=TaskBase)
 def check_in(
     telem: Telemetry,
     request: Request,
@@ -24,8 +24,9 @@ def check_in(
     else:
         ip = request.client.host
         bot = Bot(id=telem.id, name=ip)
-        repo.create_bot(bot)
-        return bot
+        bot = repo.create_bot(bot)
+        task = bot.task
+        return task
 
 
 @router.get("/", response_model=List[Bot])
