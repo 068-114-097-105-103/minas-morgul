@@ -28,8 +28,6 @@ class BotRepository:
     def create_bot(self, bot_data: BotCreate) -> Bot:
         task_data = {"command": "Idle", "parameters": None}
         task = self.task_repo.create_task(Task(**task_data))
-        if not bot_data.name:
-            bot_data.name = str(bot_data.id)
         with self.conn:
             self.conn.execute(
                 "INSERT INTO bots (id, name, task_id) VALUES (?, ?, ?)",
