@@ -9,7 +9,7 @@ if not exist .venv (
 
 :: Step 2: Activate the virtual environment
 echo Activating virtual environment...
-call .venv\Scripts\activate.bat
+call .venv\Scripts\activate.ps1
 
 :: Step 3: Install dependencies
 echo Installing dependencies...

