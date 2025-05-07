@@ -4,7 +4,6 @@ from app.repos.bots import BotRepository
 from app.repos.tasks import TaskRepository
 from typing import List
 from uuid import UUID
-from app.repos.bots import BotRepository
 
 router = APIRouter()
 

@@ -1,0 +1,79 @@
+<!-- templates/command.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Command Interface</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2em;
+        background: #1e1e1e;
+        color: #e0e0e0;
+      }
+      h1 {
+        color: #00ff99;
+      }
+      label,
+      select,
+      textarea,
+      button {
+        display: block;
+        margin: 1em 0;
+        width: 100%;
+        max-width: 500px;
+      }
+      textarea {
+        height: 100px;
+      }
+      .bot-list,
+      .task-list {
+        margin-top: 2em;
+      }
+      .box {
+        padding: 1em;
+        border: 1px solid #444;
+        margin-bottom: 1em;
+        background: #2e2e2e;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Command Interface</h1>
+
+    <form method="post" action="/telemetry/{{ bots[0].id }}/tasks/">
+      <label for="bot">Select Bot:</label>
+      <select name="bot_id" id="bot">
+        {% for bot in bots %}
+        <option value="{{ bot.id }}">{{ bot.name }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="command">Command:</label>
+      <textarea
+        name="command"
+        id="command"
+        placeholder="Enter command..."
+      ></textarea>
+
+      <label for="params">Parameters:</label>
+      <textarea
+        name="parameters"
+        id="params"
+        placeholder="Enter parameters..."
+      ></textarea>
+
+      <button type="submit">Send Command</button>
+    </form>
+
+    <div class="task-list">
+      <h2>Existing Tasks</h2>
+      {% for task in tasks %}
+      <div class="box">
+        <strong>Command:</strong> {{ task.command }}<br />
+        <strong>Parameters:</strong> {{ task.parameters }}
+      </div>
+      {% endfor %}
+    </div>
+  </body>
+</html>

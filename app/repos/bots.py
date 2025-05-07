@@ -1,7 +1,7 @@
 from app.models import Bot, BotCreate, Task
-from uuid import UUID, uuid4
 from app.repos.connections import get_connection
 from app.repos.tasks import TaskRepository
+from uuid import UUID
 
 
 class BotRepository:
