@@ -72,7 +72,7 @@
       <label for="bot">Select Bot:</label>
       <select name="bot_id" id="bot">
         {% for bot in bots %}
-        <option value="{{ bot.id }}">{{ bot.name }}</option>
+        <option value="{{ bot.id }}">{{ bot.name }} - {{bot.id}}</option>
         {% endfor %}
       </select>
 
@@ -95,10 +95,13 @@
 
     <div class="task-list">
       <h2>Existing Tasks</h2>
-      {% for task in tasks %}
+      {% for bot in bots %}
       <div class="box">
-        <strong>Command:</strong> {{ task.command }}<br />
-        <strong>Parameters:</strong> {{ task.parameters }}
+        <div>
+          <strong>Bot ID:</strong> {{ bot.id }}<br />
+          <strong>Command:</strong> {{ bot.task.command }}<br />
+          <strong>Parameters:</strong> {{ bot.task.parameters }}
+        </div>
       </div>
       {% endfor %}
     </div>
