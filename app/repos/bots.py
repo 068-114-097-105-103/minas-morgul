@@ -1,7 +1,7 @@
-from models import Bot, BotCreate
+from app.models import Bot, BotCreate, Task
 from uuid import UUID, uuid4
-import sqlite3
-from repos.connections import get_connection
+from app.repos.connections import get_connection
+from app.repos.tasks import TaskRepository
 
 
 class BotRepository:
@@ -15,10 +15,9 @@ class BotRepository:
                 """
                 CREATE TABLE IF NOT EXISTS bots (
                     id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    task TEXT DEFAULT 'Idle'
+                    name TEXT NOT NULL
                 )
-            """
+                """
             )
 
     def create_bot(self, bot_data: BotCreate) -> Bot:
@@ -45,9 +44,27 @@ class BotRepository:
             return Bot(id=UUID(row[0]), name=row[1], task=row[2])
         return None
 
-    def update_task(self, bot_id: UUID, new_task: str):
+    def add_task(self, bot_id: UUID, new_task: Task):
+        task_repo = TaskRepository()
+        task = task_repo.create_task(new_task)
         with self.conn:
-            cur = self.conn.execute(
-                "UPDATE bots SET task = ? WHERE id = ?", (new_task, str(bot_id))
+            self.conn.execute(
+                "UPDATE bots SET task = ? WHERE id = ?",
+                (str(task.id), str(bot_id)),
             )
-        return self.get_bot(bot_id)
+        return task
+
+    def update_task(self, bot_id: UUID, new_task: Task):
+        task_repo = TaskRepository()
+        task = task_repo.update_task(new_task.id, new_task)
+        with self.conn:
+            self.conn.execute(
+                "UPDATE bots SET task = ? WHERE id = ?",
+                (str(task.id), str(bot_id)),
+            )
+        return task
+
+    def delete_bot(self, bot_id: UUID):
+        with self.conn:
+            self.conn.execute("DELETE FROM bots WHERE id = ?", (str(bot_id),))
+        return True

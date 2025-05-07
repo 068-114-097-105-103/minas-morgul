@@ -5,4 +5,10 @@ DB_PATH = os.getenv("DB_PATH", "botdb.sqlite3")
 
 
 def get_connection():
-    return sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.execute(
+        """
+        PRAGMA foreign_keys = ON;
+        """
+    )
+    return conn
