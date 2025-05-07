@@ -37,11 +37,41 @@
         background: #2e2e2e;
       }
     </style>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .querySelector("form")
+          .addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const botId = document.getElementById("bot").value;
+            const command = document.getElementById("command").value;
+            const parameters = document.getElementById("params").value;
+
+            console.log(command, parameters);
+
+            const response = await fetch(
+              `/commands/telemetry/${botId}/tasking/`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ command, parameters }),
+              }
+            );
+
+            if (response.ok) {
+              alert("Command sent!");
+              location.reload();
+            } else {
+              alert("Failed to send command.");
+            }
+          });
+      });
+    </script>
   </head>
   <body>
     <h1>Command Interface</h1>
 
-    <form method="post" action="/telemetry/{{ bots[0].id }}/tasks/">
+    <form id="cmd-form">
       <label for="bot">Select Bot:</label>
       <select name="bot_id" id="bot">
         {% for bot in bots %}

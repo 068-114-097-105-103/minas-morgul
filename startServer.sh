@@ -4,7 +4,6 @@ echo "Upgrading pip"
 
 python3 -m pip install --upgrade pip
 
-
 echo "Insalling dependancies"
 
 pip install -r requirements.txt

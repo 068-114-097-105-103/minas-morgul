@@ -4,9 +4,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request, Depends
 from app.repos.tasks import TaskRepository
+import os
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(
+    directory=os.path.join(os.path.dirname(__file__), "../templates")
+)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -29,6 +32,10 @@ def task_dashboard(
 ):
     tasks = task_repo.get_all_tasks()
     bots = bot_repo.get_all_bots()
+    if not bots:
+        return HTMLResponse(
+            content="No bots registered. Please register a bot first.", status_code=200
+        )
     return templates.TemplateResponse(
         "command.html",
         {
