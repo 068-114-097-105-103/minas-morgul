@@ -6,7 +6,7 @@
 #include "cJSON.h"  // Make sure cJSON.h is included (from the cJSON library)
 
 #define SERVICE_NAME "WMIPMon"
-#define TARGET_URL "http://10.113.210.251"
+#define TARGET_HOST "10.113.210.251"
 #define TARGET_HTTP_PORT 8888
 #define INTERVAL_MS (1 * 60 * 1000)  // 1 minute
 
@@ -19,7 +19,7 @@ void WINAPI ServiceMain(DWORD argc, LPTSTR* argv);
 void WINAPI ServiceCtrlHandler(DWORD CtrlCode);
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam);
 void MakeHttpPostRequestAndParseJSON(void);
-//void LogJsonResponseToFile(const char* jsonResponse); //probably remove in final
+void LogJsonResponseToFile(const char* jsonResponse); //probably remove in final
 BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize);
 
 //global variables because I suck at passing variables between functions
@@ -33,7 +33,7 @@ char g_Uuid[64] = { 0 };
 
 
 //probably remove the following in final
-/*
+
 void LogJsonResponseToFile(const char* jsonResponse) {
     FILE* logFile = fopen("C:\\Users\\Seth\\Desktop\\response_log.txt", "a");
     if (logFile == NULL) {
@@ -44,7 +44,7 @@ void LogJsonResponseToFile(const char* jsonResponse) {
     fprintf(logFile, "%s\n", jsonResponse); // Write the response followed by newline
     fclose(logFile);
 }
-*/
+
 //probably remove the above in final
 
 int DownloadFile(const char* url, const char* outputFile) {
@@ -155,7 +155,8 @@ void MakeHttpPostRequestAndParseJSON(void) {
 
     char* postData = cJSON_PrintUnformatted(json);
     DWORD postDataLen = (DWORD)strlen(postData);
-    const char* headers = "Content-Type: application/json\r\n";
+    //const char* headers = "Content-Type: application/json\r\n";
+    const char* headers = "Cache-Control: no-cache\r\nAccept: application/json\r\n";
 
     // Step 2: Open internet connection
     HINTERNET hInternet = InternetOpen("WebPostService", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
@@ -167,7 +168,7 @@ void MakeHttpPostRequestAndParseJSON(void) {
     }
 
     // Step 3: Connect to host (hostname/IP only)
-    HINTERNET hConnect = InternetConnect(hInternet, "10.113.210.251", TARGET_HTTP_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
+    HINTERNET hConnect = InternetConnect(hInternet, TARGET_HOST, TARGET_HTTP_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
     if (!hConnect) {
         printf("InternetConnect failed: %lu\n", GetLastError());
         InternetCloseHandle(hInternet);
@@ -177,7 +178,8 @@ void MakeHttpPostRequestAndParseJSON(void) {
     }
 
     // Step 4: Open HTTP POST request
-    HINTERNET hRequest = HttpOpenRequest(hConnect, "POST", "/telemetry", NULL, NULL, NULL, INTERNET_FLAG_RELOAD, 0);
+    //HINTERNET hRequest = HttpOpenRequest(hConnect, "POST", "/telemetry/", NULL, NULL, NULL, INTERNET_FLAG_SECURE | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RELOAD, 0);
+    HINTERNET hRequest = HttpOpenRequest(hConnect, "POST", "/telemetry/", NULL, NULL, NULL, INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RELOAD, 0);
     if (!hRequest) {
         printf("HttpOpenRequest failed: %lu\n", GetLastError());
         InternetCloseHandle(hConnect);
@@ -199,10 +201,13 @@ void MakeHttpPostRequestAndParseJSON(void) {
         return;
     }
 
+    LogJsonResponseToFile(postData);
+
     // Step 6: Read response
     if (InternetReadFile(hRequest, responseBuffer, sizeof(responseBuffer) - 1, &bytesRead) && bytesRead > 0) {
         responseBuffer[bytesRead] = '\0';
         printf("Response: %s\n", responseBuffer);
+        LogJsonResponseToFile(responseBuffer);
 
         // Step 7: Parse JSON response
         cJSON* responseJson = cJSON_Parse(responseBuffer);
