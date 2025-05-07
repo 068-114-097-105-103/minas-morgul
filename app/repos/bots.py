@@ -69,13 +69,13 @@ class BotRepository:
             )
         return task
 
-    def update_task(self, bot_id: UUID, new_task: Task):
-        with self.conn:
-            self.conn.execute(
-                "UPDATE bots SET task_id = ? WHERE id = ?",
-                (str(new_task.id), str(bot_id)),
-            )
-        return new_task
+    # def update_task(self, bot_id: UUID, new_task: Task):
+    #     with self.conn:
+    #         self.conn.execute(
+    #             "UPDATE bots SET task_id = ? WHERE id = ?",
+    #             (str(new_task.id), str(bot_id)),
+    #         )
+    #     return new_task
 
     def delete_bot(self, bot_id: UUID):
         with self.conn:
