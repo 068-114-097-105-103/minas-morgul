@@ -1,0 +1,2 @@
+cl wmipmon.c cJSON.c /Fe:foo.exe
+
