@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models import Bot, BotCreate, Task, Telemetry
 from app.repos.bots import BotRepository
 from app.repos.tasks import TaskRepository
@@ -10,7 +10,11 @@ router = APIRouter()
 
 
 @router.post("/", response_model=Bot)
-def create_bot(telem: Telemetry, repo: BotRepository = Depends()):
+def create_bot(
+    telem: Telemetry,
+    request: Request,
+    repo: BotRepository = Depends(),
+):
     bot = repo.get_bot(telem.id)
     if bot:
         task = bot.task
@@ -18,7 +22,8 @@ def create_bot(telem: Telemetry, repo: BotRepository = Depends()):
             raise HTTPException(status_code=404, detail="Task not found")
         return task
     else:
-        bot = Bot(id=telem.id)
+        ip = request.client.host
+        bot = Bot(id=telem.id, name=ip)
         repo.create_bot(bot)
         return bot
 

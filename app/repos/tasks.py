@@ -1,6 +1,7 @@
 from app.models import Task, TaskCreate
 from uuid import UUID, uuid4
 from app.repos.connections import get_connection
+from typing import Optional
 
 
 class TaskRepository:
@@ -28,7 +29,9 @@ class TaskRepository:
                 (task_id, task_data.command, task_data.parameters),
             )
         return Task(
-            id=UUID(task_id), command=task_data.command, parameters=task_data.parameters
+            id=UUID(task_id),
+            command=task_data.command,
+            parameters=task_data.parameters,
         )
 
     def update_task(self, task_id: UUID, new_task: Task) -> Task:

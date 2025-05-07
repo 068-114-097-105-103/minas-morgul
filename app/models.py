@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 
 class TaskBase(BaseModel):
-    command: str
+    command: Optional[str] = "Idle"
     parameters: Optional[str] = None
 
 

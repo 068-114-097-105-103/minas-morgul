@@ -2,6 +2,7 @@ from app.models import Bot, BotCreate, Task
 from uuid import UUID, uuid4
 from app.repos.connections import get_connection
 from app.repos.tasks import TaskRepository
+import json
 
 
 class BotRepository:
@@ -25,7 +26,8 @@ class BotRepository:
             )
 
     def create_bot(self, bot_data: BotCreate) -> Bot:
-        task = self.task_repo.create_task(Task(command="Idle"))
+        task_data = {"command": "Idle", "parameters": None}
+        task = self.task_repo.create_task(Task(**task_data))
         if not bot_data.name:
             bot_data.name = str(bot_data.id)
         with self.conn:
@@ -68,14 +70,6 @@ class BotRepository:
                 (str(task.id), str(bot_id)),
             )
         return task
-
-    # def update_task(self, bot_id: UUID, new_task: Task):
-    #     with self.conn:
-    #         self.conn.execute(
-    #             "UPDATE bots SET task_id = ? WHERE id = ?",
-    #             (str(new_task.id), str(bot_id)),
-    #         )
-    #     return new_task
 
     def delete_bot(self, bot_id: UUID):
         with self.conn:
