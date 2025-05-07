@@ -1,7 +1,6 @@
-from models import Bot, BotCreate
+from app.models import Bot, BotCreate
 from uuid import UUID, uuid4
-import sqlite3
-from repos.connections import get_connection
+from app.repos.connections import get_connection
 
 
 class BotRepository:
