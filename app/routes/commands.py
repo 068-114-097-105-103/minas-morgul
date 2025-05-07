@@ -65,12 +65,11 @@ def get_new_tasking(
     bot_id: UUID,
     telemetry: Telemetry,
     bot_repo: BotRepository = Depends(),
-    task_repo: TaskRepository = Depends(),
 ):
     bot = bot_repo.get_bot(bot_id)
     if not bot:
         raise HTTPException(status_code=404, detail="Bot not found")
-    task = task_repo.create_task(task)
+    task = bot.task
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
