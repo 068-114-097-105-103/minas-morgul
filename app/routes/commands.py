@@ -2,15 +2,15 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models import Bot, BotCreate, Task, Telemetry
 from app.repos.bots import BotRepository
 from app.repos.tasks import TaskRepository
-from typing import List
+from typing import List, Union
 from uuid import UUID
 
 
 router = APIRouter()
 
 
-@router.post("/", response_model=Bot)
-def create_bot(
+@router.post("/", response_model=Union[Bot, Task])
+def check_in(
     telem: Telemetry,
     request: Request,
     repo: BotRepository = Depends(),
