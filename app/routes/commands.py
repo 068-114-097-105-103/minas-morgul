@@ -29,7 +29,7 @@ def check_in(
         return task
 
 
-@router.get("/", response_model=List[Bot])
+@router.get("/bots", response_model=List[Bot])
 def get_all_bots(repo: BotRepository = Depends()):
     bots = repo.get_all_bots()
     return bots

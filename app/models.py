@@ -25,15 +25,15 @@ class BotBase(BaseModel):
 
 
 class BotCreate(BotBase):
-    id: UUID = Field(default_factory=uuid4)
+    id: UUID = Field()
 
 
 class Bot(BotBase):
-    id: UUID = Field(default_factory=uuid4)
+    id: UUID = Field()
 
 
 class Telemetry(BaseModel):
-    id: UUID = Field(default_factory=uuid4)
+    id: UUID = Field()
     memeory: Optional[str] = None
     cpu: Optional[str] = None
     disk: Optional[str] = None
