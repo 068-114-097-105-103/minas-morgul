@@ -43,7 +43,8 @@ def task_dashboard(
     commands = ["heartbeat", "shell", "update"]
     if not bots:
         return HTMLResponse(
-            content="No bots registered. Please register a bot first.", status_code=200
+            content="No bots registered. Please register a bot first.",
+            status_code=200,
         )
     return templates.TemplateResponse(
         "command.html",
