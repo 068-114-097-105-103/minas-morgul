@@ -68,33 +68,62 @@
   <body>
     <h1>Command Interface</h1>
 
-    <form id="cmd-form">
-      <label for="bot">Select Bot:</label>
-      <select name="bot_id" id="bot">
-        {% for bot in bots %}
-        <option value="{{ bot.id }}">{{ bot.name }} - {{bot.id}}</option>
+    <div style="display: flex; gap: 2em">
+      <!-- Command Form -->
+      <form id="cmd-form" style="flex: 1">
+        <label for="bot">Select Bot:</label>
+        <select name="bot_id" id="bot">
+          {% for bot in bots %}
+          <option value="{{ bot.id }}">{{ bot.name }} - {{bot.id}}</option>
+          {% endfor %}
+        </select>
+
+        <label for="command">Command:</label>
+        <textarea
+          name="command"
+          id="command"
+          placeholder="Enter command..."
+        ></textarea>
+
+        <label for="params">Parameters:</label>
+        <textarea
+          name="parameters"
+          id="params"
+          placeholder="Enter parameters..."
+        ></textarea>
+
+        <button type="submit">Send Command</button>
+      </form>
+
+      <!-- Task List -->
+      <div
+        class="task-list"
+        style="
+          flex: 1;
+          max-height: 600px;
+          overflow-y: auto;
+          border: 1px solid #444;
+          padding: 1em;
+          background: #2a2a2a;
+        "
+      >
+        <h2>All Tasks</h2>
+        {% for task in tasks %}
+        <div class="box">
+          <strong>Task ID:</strong> {{ task.id }}<br />
+          <strong>Command:</strong> {{ task.command }}<br />
+          <strong>Parameters:</strong> {{ task.parameters }}<br />
+          <strong>Status:</strong> {{ task.status }}<br />
+          <strong>Time Sent:</strong> {{ task.time_sent if task.time_sent else
+          "Not Yet Sent" }}<br />
+        </div>
         {% endfor %}
-      </select>
+      </div>
+    </div>
 
-      <label for="command">Command:</label>
-      <textarea
-        name="command"
-        id="command"
-        placeholder="Enter command..."
-      ></textarea>
-
-      <label for="params">Parameters:</label>
-      <textarea
-        name="parameters"
-        id="params"
-        placeholder="Enter parameters..."
-      ></textarea>
-
-      <button type="submit">Send Command</button>
-    </form>
-
-    <div class="task-list">
-      <h2>Existing Tasks</h2>
+    <!-- Bot Tasking Section -->
+    <div class="task-list" style="margin-top: 2em">
+      <h2>Bot Tasking</h2>
       {% for bot in bots %}
       <div class="box">
         <div>
