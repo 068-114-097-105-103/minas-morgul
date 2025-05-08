@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from app.models import Bot, Task, Telemetry, TaskBase
 from app.repos.bots import BotRepository
 from app.repos.tasks import TaskRepository
-from typing import List, Literal
+from typing import List
 from uuid import UUID
 
 
