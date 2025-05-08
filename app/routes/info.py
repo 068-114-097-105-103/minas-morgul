@@ -30,7 +30,15 @@ def task_dashboard(
     bot_repo: BotRepository = Depends(),
     task_repo: TaskRepository = Depends(),
 ):
-    tasks = task_repo.get_all_tasks()
+    tasks = reversed(
+        list(
+            filter(
+                lambda x: x.status != "Idle" and x.command is not None,
+                task_repo.get_all_tasks(),
+            )
+        )
+    )
+
     bots = bot_repo.get_all_bots()
     commands = ["heartbeat", "shell", "update"]
     if not bots:
