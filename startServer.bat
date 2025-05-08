@@ -18,7 +18,7 @@ pip install -r requirements.txt
 
 :: Step 4: Run the FastAPI server
 echo Starting FastAPI server...
-uvicorn app.main:app --host 10.113.210.251 --port 8888 --reload --proxy-headers --ssl_keyfile "dev.key" --ssl_certfile "dev.crt",
+uvicorn app.main:app --host 10.113.210.251 --port 8888 --reload --proxy-headers --ssl-keyfile dev.key --ssl-certfile dev.crt
 
 ENDLOCAL
 pause
