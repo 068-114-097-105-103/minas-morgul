@@ -32,6 +32,7 @@ def task_dashboard(
 ):
     tasks = task_repo.get_all_tasks()
     bots = bot_repo.get_all_bots()
+    commands = ["heartbeat", "shell", "update"]
     if not bots:
         return HTMLResponse(
             content="No bots registered. Please register a bot first.", status_code=200
@@ -42,5 +43,6 @@ def task_dashboard(
             "request": request,
             "tasks": tasks,
             "bots": bots,
+            "commands": commands,
         },
     )
