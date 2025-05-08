@@ -2,11 +2,10 @@
 #include <wininet.h>
 #include <stdio.h>
 #include <string.h>
-#include <rpc.h>  // For UUID generation
 #include "cJSON.h"  // Make sure cJSON.h is included (from the cJSON library)
 
 #define SERVICE_NAME "WMIPMon"
-#define TARGET_HOST "10.113.210.251"
+#define TARGET_URL "http://10.113.210.251"
 #define TARGET_HTTP_PORT 8888
 #define INTERVAL_MS (1 * 60 * 1000)  // 1 minute
 
@@ -19,33 +18,9 @@ void WINAPI ServiceMain(DWORD argc, LPTSTR* argv);
 void WINAPI ServiceCtrlHandler(DWORD CtrlCode);
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam);
 void MakeHttpPostRequestAndParseJSON(void);
-void LogJsonResponseToFile(const char* jsonResponse); //probably remove in final
-BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize);
 
-//global variables because I suck at passing variables between functions
-char g_Uuid[64] = { 0 };
-
-#pragma comment(lib, "advapi32.lib") //windos API functions
-#pragma comment(lib, "wininet.lib") //windows networking functions
-#pragma comment(lib, "shell32.lib") //needed for shell functions
-//#pragma comment(lib, "User32.lib") //needed for message box
-#pragma comment(lib, "Rpcrt4.lib")  // For UuidCreate and UuidToString
-
-
-//probably remove the following in final
-
-void LogJsonResponseToFile(const char* jsonResponse) {
-    FILE* logFile = fopen("C:\\Users\\Seth\\Desktop\\response_log.txt", "a");
-    if (logFile == NULL) {
-        printf("Failed to open log file for writing.\n");
-        return;
-    }
-
-    fprintf(logFile, "%s\n", jsonResponse); // Write the response followed by newline
-    fclose(logFile);
-}
-
-//probably remove the above in final
+#pragma comment(lib, "wininet.lib")
+#pragma comment(lib, "shell32.lib")
 
 int DownloadFile(const char* url, const char* outputFile) {
     HINTERNET hInternet = InternetOpen("MyDownloader", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
@@ -86,61 +61,7 @@ int DownloadFile(const char* url, const char* outputFile) {
     return 0;
 }
 
-BOOL CheckOrCreateUUID(char* outUuid, DWORD outUuidSize) {
-    if (!outUuid || outUuidSize < 1) return FALSE;
 
-    HKEY hKey;
-    LPCSTR subKey = "SOFTWARE\\WOW6432Node\\wmipmon";
-    LPCSTR valueName = "uuid";
-    DWORD disposition;
-    CHAR uuidStr[64] = { 0 };
-    DWORD dataSize = sizeof(uuidStr);
-
-    LONG result = RegCreateKeyExA(
-        HKEY_LOCAL_MACHINE,
-        subKey,
-        0,
-        NULL,
-        REG_OPTION_NON_VOLATILE,
-        KEY_READ | KEY_WRITE,
-        NULL,
-        &hKey,
-        &disposition
-    );
-
-    if (result != ERROR_SUCCESS) {
-        return FALSE;
-    }
-
-    result = RegQueryValueExA(hKey, valueName, NULL, NULL, (LPBYTE)uuidStr, &dataSize);
-
-    if (result == ERROR_SUCCESS && uuidStr[0] != '\0') {
-        strncpy(outUuid, uuidStr, outUuidSize - 1);
-        outUuid[outUuidSize - 1] = '\0';  // Ensure null termination
-    }
-    else {
-        UUID uuid;
-        if (UuidCreate(&uuid) != RPC_S_OK) {
-            RegCloseKey(hKey);
-            return FALSE;
-        }
-
-        RPC_CSTR strUuid = NULL;
-        if (UuidToStringA(&uuid, &strUuid) == RPC_S_OK) {
-            RegSetValueExA(hKey, valueName, 0, REG_SZ, strUuid, (DWORD)strlen((char*)strUuid) + 1);
-            strncpy(outUuid, (char*)strUuid, outUuidSize - 1);
-            outUuid[outUuidSize - 1] = '\0';
-            RpcStringFreeA(&strUuid);
-        }
-        else {
-            RegCloseKey(hKey);
-            return FALSE;
-        }
-    }
-
-    RegCloseKey(hKey);
-    return TRUE;
-}
 
 void MakeHttpPostRequestAndParseJSON(void) {
     char responseBuffer[4096];
@@ -148,15 +69,13 @@ void MakeHttpPostRequestAndParseJSON(void) {
 
     // Step 1: Create JSON body
     cJSON* json = cJSON_CreateObject();
-    cJSON_AddStringToObject(json, "uuid", g_Uuid);
     cJSON_AddStringToObject(json, "memory", "2GB");
     cJSON_AddStringToObject(json, "cpu", "Intel i5");
     cJSON_AddStringToObject(json, "disk", "256GB SSD");
 
     char* postData = cJSON_PrintUnformatted(json);
     DWORD postDataLen = (DWORD)strlen(postData);
-    //const char* headers = "Content-Type: application/json\r\n";
-    const char* headers = "Cache-Control: no-cache\r\nAccept: application/json\r\n";
+    const char* headers = "Content-Type: application/json\r\n";
 
     // Step 2: Open internet connection
     HINTERNET hInternet = InternetOpen("WebPostService", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
@@ -168,7 +87,7 @@ void MakeHttpPostRequestAndParseJSON(void) {
     }
 
     // Step 3: Connect to host (hostname/IP only)
-    HINTERNET hConnect = InternetConnect(hInternet, TARGET_HOST, TARGET_HTTP_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
+    HINTERNET hConnect = InternetConnect(hInternet, "10.113.210.251", TARGET_HTTP_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
     if (!hConnect) {
         printf("InternetConnect failed: %lu\n", GetLastError());
         InternetCloseHandle(hInternet);
@@ -178,8 +97,7 @@ void MakeHttpPostRequestAndParseJSON(void) {
     }
 
     // Step 4: Open HTTP POST request
-    //HINTERNET hRequest = HttpOpenRequest(hConnect, "POST", "/telemetry/", NULL, NULL, NULL, INTERNET_FLAG_SECURE | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RELOAD, 0);
-    HINTERNET hRequest = HttpOpenRequest(hConnect, "POST", "/telemetry/", NULL, NULL, NULL, INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RELOAD, 0);
+    HINTERNET hRequest = HttpOpenRequest(hConnect, "POST", "/", NULL, NULL, NULL, INTERNET_FLAG_RELOAD, 0);
     if (!hRequest) {
         printf("HttpOpenRequest failed: %lu\n", GetLastError());
         InternetCloseHandle(hConnect);
@@ -201,34 +119,21 @@ void MakeHttpPostRequestAndParseJSON(void) {
         return;
     }
 
-    LogJsonResponseToFile(postData);
-
     // Step 6: Read response
     if (InternetReadFile(hRequest, responseBuffer, sizeof(responseBuffer) - 1, &bytesRead) && bytesRead > 0) {
         responseBuffer[bytesRead] = '\0';
         printf("Response: %s\n", responseBuffer);
-        LogJsonResponseToFile(responseBuffer);
 
         // Step 7: Parse JSON response
         cJSON* responseJson = cJSON_Parse(responseBuffer);
         if (responseJson) {
-            cJSON* command = cJSON_GetObjectItemCaseSensitive(responseJson, "command");
-            cJSON* parameters = cJSON_GetObjectItemCaseSensitive(responseJson, "parameters");
-
-            if (cJSON_IsString(command) && cJSON_IsString(parameters)) {
-                printf("Command: %s\n", command->valuestring);
-                printf("Parameters: %s\n", parameters->valuestring);
-
-                if (strcmp(command->valuestring, "update") == 0) {
-                    // Call your download function with the given URL
-                    DownloadFile(parameters->valuestring, "downloaded_file.exe");
-                }
-                // else if (...) handle other commands here
+            cJSON* status = cJSON_GetObjectItemCaseSensitive(responseJson, "status");
+            if (cJSON_IsString(status)) {
+                printf("Status: %s\n", status->valuestring);
             }
             else {
-                printf("Invalid or missing command/parameters in JSON\n");
+                printf("Status not found or not a string\n");
             }
-
             cJSON_Delete(responseJson);
         }
         else {
@@ -246,6 +151,7 @@ void MakeHttpPostRequestAndParseJSON(void) {
     cJSON_Delete(json);
     free(postData);
 }
+
 
 
 DWORD WINAPI ServiceWorkerThread(LPVOID lpParam) {
@@ -297,14 +203,6 @@ void WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
         g_ServiceStatus.dwWin32ExitCode = GetLastError();
         SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
         return;
-    }
-
-    // --- Call CheckOrCreateUUID here ---
-    if (CheckOrCreateUUID(g_Uuid, sizeof(g_Uuid))) {
-        printf("UUID: %s\n", g_Uuid);
-    }
-    else {
-        printf("Failed to retrieve or create UUID\n");
     }
 
     g_ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
