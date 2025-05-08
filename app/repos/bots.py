@@ -26,7 +26,7 @@ class BotRepository:
             )
 
     def create_bot(self, bot_data: BotCreate) -> Bot:
-        task_data = {"command": "Idle", "parameters": None}
+        task_data = {"command": None, "parameters": None, "status": "Idle"}
         task = self.task_repo.create_task(Task(**task_data))
         with self.conn:
             self.conn.execute(
@@ -59,9 +59,10 @@ class BotRepository:
             )
         return None
 
-    def add_task(self, bot_id: UUID, new_task: Task):
-        task_repo = TaskRepository()
-        task = task_repo.create_task(new_task)
+    def new_task(self, bot_id: UUID):
+        task = self.task_repo.create_task(
+            Task(command=None, parameters=None, status="Idle")
+        )
         with self.conn:
             self.conn.execute(
                 "UPDATE bots SET task_id = ? WHERE id = ?",
