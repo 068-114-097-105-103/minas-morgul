@@ -12,16 +12,16 @@ templates = Jinja2Templates(
 )
 
 
-@router.get("/dashboard", response_class=HTMLResponse)
-def bot_dashboard(request: Request, repo: BotRepository = Depends()):
-    bots = repo.get_all_bots()
-    return templates.TemplateResponse(
-        "status.html",
-        {
-            "request": request,
-            "bots": bots,
-        },
-    )
+# @router.get("/dashboard", response_class=HTMLResponse)
+# def bot_dashboard(request: Request, repo: BotRepository = Depends()):
+#     bots = repo.get_all_bots()
+#     return templates.TemplateResponse(
+#         "status.html",
+#         {
+#             "request": request,
+#             "bots": bots,
+#         },
+#     )
 
 
 @router.get("/tasks", response_class=HTMLResponse)
@@ -30,6 +30,12 @@ def task_dashboard(
     bot_repo: BotRepository = Depends(),
     task_repo: TaskRepository = Depends(),
 ):
+    if not request.session.get("user"):
+        return HTMLResponse(
+            content="Unauthorized access. Please log in.",
+            status_code=401,
+        )
+
     tasks = reversed(
         list(
             filter(
