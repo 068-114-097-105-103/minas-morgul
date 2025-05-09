@@ -1,0 +1,21 @@
+<!-- templates/_navbar.html -->
+<nav
+  style="
+    background: #2e2e2e;
+    padding: 1em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #e0e0e0;
+  "
+>
+  <div style="font-weight: bold">🛠 Command Interface</div>
+  <div>
+    Logged in as: {{ request.session.get("user") }}
+    <a
+      href="/logout"
+      style="margin-left: 1em; color: #ff6666; text-decoration: none"
+      >Logout</a
+    >
+  </div>
+</nav>

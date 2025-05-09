@@ -12,16 +12,16 @@ templates = Jinja2Templates(
 )
 
 
-@router.get("/dashboard", response_class=HTMLResponse)
-def bot_dashboard(request: Request, repo: BotRepository = Depends()):
-    bots = repo.get_all_bots()
-    return templates.TemplateResponse(
-        "status.html",
-        {
-            "request": request,
-            "bots": bots,
-        },
-    )
+# @router.get("/dashboard", response_class=HTMLResponse)
+# def bot_dashboard(request: Request, repo: BotRepository = Depends()):
+#     bots = repo.get_all_bots()
+#     return templates.TemplateResponse(
+#         "status.html",
+#         {
+#             "request": request,
+#             "bots": bots,
+#         },
+#     )
 
 
 @router.get("/tasks", response_class=HTMLResponse)
@@ -30,12 +30,27 @@ def task_dashboard(
     bot_repo: BotRepository = Depends(),
     task_repo: TaskRepository = Depends(),
 ):
-    tasks = task_repo.get_all_tasks()
+    if not request.session.get("user"):
+        return HTMLResponse(
+            content="Unauthorized access. Please log in.",
+            status_code=401,
+        )
+
+    tasks = reversed(
+        list(
+            filter(
+                lambda x: x.status != "Idle" and x.command is not None,
+                task_repo.get_all_tasks(),
+            )
+        )
+    )
+
     bots = bot_repo.get_all_bots()
     commands = ["heartbeat", "shell", "update"]
     if not bots:
         return HTMLResponse(
-            content="No bots registered. Please register a bot first.", status_code=200
+            content="No bots registered. Please register a bot first.",
+            status_code=200,
         )
     return templates.TemplateResponse(
         "command.html",

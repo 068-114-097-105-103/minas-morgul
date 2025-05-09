@@ -1,0 +1,9 @@
+FROM sysperform.proto:latest
+
+WORKDIR /app
+
+COPY ./sysperform.key ./
+COPY ./sysperform.crt ./
+
+
+CMD ["uvicorn", "main:app", "--host", "sysperform.org", "--port", "8443", "--ssl-keyfile", "sysperform.key", "--ssl-certfile", "sysperform.crt"]
