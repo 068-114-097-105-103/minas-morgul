@@ -22,7 +22,7 @@ docker run -d --name $CONTAINER_NAME \
   $IMAGE_NAME
 
 
-echo "✅ Server is running at https://$HOST:$PORT"
+echo "✅ Server is running at http://$HOST:$PORT"
 
 echo "🛠️  Opening Log files...."
 
