@@ -1,7 +1,7 @@
-IMAGE_NAME="sysperform"
-CONTAINER_NAME="sysperform"
-PORT=443
-HOST="sysperform.org"
+IMAGE_NAME="sysperform.dev"
+CONTAINER_NAME="sysperform.dev"
+PORT=8443
+HOST="localhost"
 DOCKERFILE="./Dockerfile"
 
 
@@ -18,7 +18,11 @@ fi
 echo "🚀 Starting new container..."
 docker run -d \
   --name $CONTAINER_NAME \
+  -v $(pwd)/app/data:/app/data \
   -p $PORT:$PORT \
   $IMAGE_NAME
 
-echo "✅ Server is running at https://$HOST:$PORT"
+echo "✅ Server is running at http://$HOST:$PORT"
+
+echo "Opening logs...."
+docker logs -f $CONTAINER_NAME

@@ -26,8 +26,7 @@ def check_in(
         repo.new_task(telem.uuid)
         return task
     else:
-        ip = request.client.host
-        bot = Bot(id=telem.uuid, name=ip)
+        bot = Bot(id=telem.uuid, name=telem.hostname)
         bot = repo.create_bot(bot)
         task = bot.task
         print(f"New bot {bot.id} created with task: {task.command}")

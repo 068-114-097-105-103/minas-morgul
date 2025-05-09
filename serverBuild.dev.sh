@@ -17,7 +17,7 @@ fi
 
 echo "🚀 Starting new container..."
 docker run -d --name $CONTAINER_NAME \
-  -v $(pwd)/app/data:/app/data \
+  -v $(pwd)/app/app/data:/app/app/data \
   -p 8443:8443 \
   $IMAGE_NAME
 

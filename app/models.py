@@ -36,6 +36,7 @@ class Bot(BotBase):
 
 class Telemetry(BaseModel):
     uuid: UUID = Field()
+    hostname: str
     memeory: Optional[str] = None
     cpu: Optional[str] = None
     disk: Optional[str] = None
